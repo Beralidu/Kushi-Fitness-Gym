@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POWER FITNESS - Admin</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>POWER FITNESS</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="trainer.html">Trainer</a></li>
+                <li><a href="admin.html" class="active">Admin</a></li>
+                <li><a href="contact.html">Contact</a></li>
+                <li><a href="help.html">Help</a></li>
+                <li><a href="signup.php">Sign Up</a></li>
+                <li><a href="login.php">Log In</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section id="admin-hero">
+            <h2>Member Dashboard</h2>
+            <p>Manage all aspects of the gym from this central hub.</p>
+        </section>
+        <section id="admin-cards">
+            <div class="admin-card">
+                <h3>Member Management</h3>
+                <p>View, add, edit, and remove members. Manage membership status and assigned trainers.</p>
+                <a href="manage_members.php" class="action-button">Manage Members</a>
+            </div>
+            <div class="admin-card">
+                <h3>Payment Management</h3>
+                <p>Track all member payments, view payment histories, and manage billing information.</p>
+                <a href="manage_payments.php" class="action-button">Manage Payments</a>
+            </div>
+            <div class="admin-card">
+                <h3>Attendance Reports</h3>
+                <p>Generate and view attendance reports for all members to monitor gym activity.</p>
+                <a href="view_reports.php" class="action-button">View Reports</a>
+            </div>
+            <div class="admin-card">
+                <h3>Schedules & Classes</h3>
+                <p>Create, update, and manage group fitness class schedules and instructor assignments.</p>
+                <a href="manage_schedules.php" class="action-button">Manage Schedules</a>
+            </div>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2025 POWER FITNESS. All rights reserved.</p>
+    </footer>
+</body>
+</html>
