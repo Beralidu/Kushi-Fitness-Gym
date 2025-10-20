@@ -2,30 +2,43 @@
 session_start();
 include 'db.php';
 
+$editing = false;
+if (isset($_GET['id'])) {
+    $editing = true;
+    $id = $_GET['id'];
+    // Fetch existing member data
+    $stmt = $conn->prepare("SELECT full_name, email, phone, address, weight, height FROM users WHERE user_id=?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $member = $result->fetch_assoc();
+}
+
+// Handle form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $name = trim($_POST['name']);
     $email = trim($_POST['email']);
-    $password = password_hash($_POST['password'], PASSWORD_BCRYPT);
     $phone = trim($_POST['phone']);
+    $address = trim($_POST['address']);
+    $weight = !empty($_POST['weight']) ? (float)$_POST['weight'] : NULL;
+    $height = !empty($_POST['height']) ? (float)$_POST['height'] : NULL;
 
-    // Basic validation
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = "Please enter a valid email address.";
-    }
-
-    // Check if email exists
-    $check = $conn->prepare("SELECT * FROM users WHERE email=?");
-    $check->bind_param("s", $email);
-    $check->execute();
-    $result = $check->get_result();
-
-    if ($result->num_rows > 0) {
-        $error = "Email already registered!";
-    } else {
-        $stmt = $conn->prepare("INSERT INTO users (full_name,email,password_hash,phone,role) VALUES (?, ?, ?, ?, 'member')");
-        $stmt->bind_param("ssss", $name, $email, $password, $phone);
+    if ($editing) {
+        // Update existing member
+        $stmt = $conn->prepare("UPDATE users SET full_name=?, email=?, phone=?, address=?, weight=?, height=? WHERE user_id=?");
+        $stmt->bind_param("ssssddi", $name, $email, $phone, $address, $weight, $height, $id);
         if ($stmt->execute()) {
-            // Redirect to login to avoid form resubmission
+            header("Location: manage_members.php?update=success");
+            exit();
+        } else {
+            $error = "Error: " . $stmt->error;
+        }
+    } else {
+        // New member signup (insert) logic here
+        $password = password_hash($_POST['password'], PASSWORD_BCRYPT);
+        $stmt = $conn->prepare("INSERT INTO users (full_name,email,password_hash,phone,role,address,weight,height) VALUES (?, ?, ?, ?, 'member', ?, ?, ?)");
+        $stmt->bind_param("ssssddd", $name, $email, $password, $phone, $address, $weight, $height);
+        if ($stmt->execute()) {
             header("Location: login.php?signup=success");
             exit();
         } else {
@@ -38,44 +51,61 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Sign Up - POWER FITNESS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= $editing ? 'Edit Member' : 'Sign Up'; ?> - POWER FITNESS</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <?php include 'header.php'; ?>
     <main>
         <section id="signup-hero">
-            <h2>Join Our Community</h2>
-            <p>Create your account to start your fitness journey with us. It only takes a minute!</p>
+            <h2><?= $editing ? 'Edit Member' : 'Join POWER FITNESS'; ?></h2>
+            <p><?= $editing ? 'Update member details below.' : 'Create your account to start your fitness journey with us!'; ?></p>
         </section>
         <section id="signup-form-section">
             <div class="signup-container">
-                <h2>Create Your Account</h2>
-                <?php if(isset($error)) echo "<p style='color:red'>$error</p>"; ?>
-                <?php if(isset($success)) echo "<p style='color:green'>$success</p>"; ?>
+                <h2><?= $editing ? 'Edit Member' : 'Sign Up'; ?></h2>
+                <?php if (isset($error)) echo "<p style='color:red'>$error</p>"; ?>
                 <form method="POST">
-                    <div class="form-group">
+                    <div class="form-group
+">
                         <label for="name">Full Name:</label>
-                        <input type="text" id="name" name="name" required>
+                        <input type="text" id="name" name="name" value="<?= $editing ? htmlspecialchars($member['full_name']) : ''; ?>" required>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group">    
                         <label for="email">Email Address:</label>
-                        <input type="email" id="email" name="email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Create Password:</label>
-                        <input type="password" id="password" name="password" required>
+                        <input type="email" id="email" name="email" value="<?= $editing ? htmlspecialchars($member['email']) : ''; ?>" required>
                     </div>
                     <div class="form-group">
                         <label for="phone">Phone Number:</label>
-                        <input type="tel" id="phone" name="phone">
+                        <input type="text" id="phone" name="phone" value="<?= $editing ? htmlspecialchars($member['phone']) : ''; ?>" required>
                     </div>
-                    <button type="submit">Sign Up</button>
+                    <div class="form-group
+">
+                        <label for="address">Address:</label>
+                        <input type="text" id="address" name="address" value="<?= $editing ? htmlspecialchars($member['address']) : ''; ?>"> 
+                    </div>
+                    <div class="form-group">
+                        <label for="weight">Weight (kg):</label>
+                        <input type="number" step="0.1" id="weight" name="weight" value="<?= $editing ? htmlspecialchars($member['weight']) : ''; ?>">  
+                    </div>
+                    <div class="form-group  
+">
+                        <label for="height">Height (cm):</label>
+                        <input type="number" step="0.1" id="height" name="height" value="<?= $editing ? htmlspecialchars($member['height']) : ''; ?>">
+                    </div>
+                    <?php if (!$editing): ?>    
+                    <div class="form-group">
+                        <label for="password">Password:</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+                    <?php endif; ?> 
+                    <button type="submit"><?= $editing ? 'Update Member' : 'Sign Up'; ?></button>
                 </form>
-                <p class="login-link">Already have an account? <a href="login.php">Log In</a></p>
             </div>
-        </section>
+        </section>  
     </main>
-    <?php include 'footer.php'; ?>
+    <?php include 'footer.php'; ?>  
 </body>
-</html>
+</html> 
+

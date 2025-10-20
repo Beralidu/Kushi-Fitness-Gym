@@ -5,7 +5,6 @@
         <ul>
             <li><a href="index.html">Home</a></li>
             <li><a href="about.html">About</a></li>
-            <li><a href="membership.html">Membership</a></li>
             <li><a href="trainer_dashboard.php">Trainer</a></li>
             <li><a href="admin_dashboard.php">Admin</a></li>
             <li><a href="contact.html">Contact</a></li>

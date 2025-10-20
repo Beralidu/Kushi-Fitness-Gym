@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if ($user['role'] == 'trainer') {
             header("Location: trainer_dashboard.php");
         } elseif ($user['role'] == 'admin') {
-            header("Location: admin_dashboard.php");
+            header("Location: admin.html");
         } else {
             header("Location: admin.html");
             // print "Hello Member : " . $_SESSION['name'];
