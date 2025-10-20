@@ -1,8 +1,13 @@
 <?php
 session_start();
 include 'db.php';
-if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
-    header('Location: login.php');
+// Instead of redirecting, we'll check if the user is not logged in or not an admin
+// and show an error message while staying on the current page
+$isAuthorized = isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'member';
+// If it's an AJAX request or form submission, return JSON response
+if (!$isAuthorized && ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest') {
+    header('Content-Type: application/json');
+    echo json_encode(['error' => 'Unauthorized access']);
     exit();
 }
 ?>
@@ -13,8 +18,27 @@ if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Attendance Reports - POWER FITNESS</title>
     <link rel="stylesheet" href="style.css">
+    <script>
+        // Add this JavaScript to handle form submission
+        document.addEventListener('DOMContentLoaded', function() {
+            if (document.querySelector('form')) {
+                document.querySelector('form').addEventListener('submit', function(e) {
+                    if (!<?php echo $isAuthorized ? 'true' : 'false'; ?>) {
+                        e.preventDefault();
+                        alert('Please log in as an admin to perform this action.');
+                        return false;
+                    }
+                });
+            }
+        });
+    </script>
 </head>
 <body>
+    <?php if (!$isAuthorized): ?>
+    <div class="auth-warning" style="background: #ffe6e6; color: #cc0000; padding: 10px; margin: 10px; border-radius: 5px; text-align: center;">
+        Please <a href="login.php" style="color: #cc0000; text-decoration: underline;">log in as an admin</a> to manage attendance.
+    </div>
+    <?php endif; ?>
     <?php include 'header.php'; ?>
     <main>
         <section class="admin-page">
@@ -83,18 +107,20 @@ if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
             // Prev/next month links
             $prev = (clone $firstOfMonth)->modify('-1 month')->format('Y-m-d');
             $next = (clone $firstOfMonth)->modify('+1 month')->format('Y-m-d');
-            // Gather present dates for the month to mark them on calendar
-            $monthStart = $firstOfMonth->format('Y-m-01');
-            $monthEnd = $firstOfMonth->format('Y-m-t');
-            $presentDates = [];
-            $pdStmt = $conn->prepare("SELECT attend_date, COUNT(*) AS cnt FROM attendance WHERE attend_date BETWEEN ? AND ? AND status = 'present' GROUP BY attend_date");
-            if ($pdStmt) {
-                $pdStmt->bind_param('ss', $monthStart, $monthEnd);
-                $pdStmt->execute();
-                $pdRes = $pdStmt->get_result();
-                while ($pd = $pdRes->fetch_assoc()) {
-                    $presentDates[$pd['attend_date']] = (int)$pd['cnt'];
-                }
+            
+            // Fetch attendance data for the whole month
+            $monthStart = $firstOfMonth->format('Y-m-d');
+            $monthEnd = (clone $firstOfMonth)->modify('+1 month -1 day')->format('Y-m-d');
+            $monthAttendance = [];
+            $attStmt = $conn->prepare("SELECT attend_date, COUNT(*) as total, SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END) as present FROM attendance WHERE attend_date BETWEEN ? AND ? GROUP BY attend_date");
+            $attStmt->bind_param('ss', $monthStart, $monthEnd);
+            $attStmt->execute();
+            $attRes = $attStmt->get_result();
+            while ($att = $attRes->fetch_assoc()) {
+                $monthAttendance[$att['attend_date']] = [
+                    'total' => (int)$att['total'],
+                    'present' => (int)$att['present']
+                ];
             }
             ?>
 
@@ -105,6 +131,13 @@ if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
                     <a href="?date=<?php echo urlencode($prev); ?>">&laquo; Prev</a>
                     <span class="calendar-title"><?php echo $firstOfMonth->format('F Y'); ?></span>
                     <a href="?date=<?php echo urlencode($next); ?>">Next &raquo;</a>
+                </div>
+                
+                <div class="calendar-legend">
+                    <span class="legend-item"><span class="dot no-attendance"></span> No Records</span>
+                    <span class="legend-item"><span class="dot partial-attendance"></span> Partial Attendance</span>
+                    <span class="legend-item"><span class="dot full-attendance"></span> Full Attendance</span>
+                    <span class="legend-item"><span class="dot selected"></span> Selected Date</span>
                 </div>
 
                 <table class="calendar">
@@ -123,13 +156,30 @@ if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
                                 echo "<td class=\"empty\"></td>";
                             } else {
                                 $dayDate = sprintf('%04d-%02d-%02d', $year, $month, $cell);
-                                $classes = ($dayDate === $selectedDate) ? 'selected' : '';
-                                $dataAttr = '';
-                                if (isset($presentDates[$dayDate]) && $presentDates[$dayDate] > 0) {
-                                    $classes = ($classes ? $classes . ' ' : '') . 'present';
-                                    $dataAttr = ' data-count="' . $presentDates[$dayDate] . '"';
+                                $classes = [];
+                                if ($dayDate === $selectedDate) {
+                                    $classes[] = 'selected';
                                 }
-                                echo "<td class=\"$classes\"{$dataAttr}><a href=\"?date={$dayDate}\">{$cell}</a></td>";
+                                
+                                // Add attendance status classes
+                                if (isset($monthAttendance[$dayDate])) {
+                                    $att = $monthAttendance[$dayDate];
+                                    if ($att['present'] == $att['total']) {
+                                        $classes[] = 'full-attendance';
+                                    } elseif ($att['present'] > 0) {
+                                        $classes[] = 'partial-attendance';
+                                    } else {
+                                        $classes[] = 'no-attendance';
+                                    }
+                                }
+                                
+                                $classString = implode(' ', $classes);
+                                echo "<td class=\"{$classString}\"><a href=\"?date={$dayDate}\">";
+                                echo $cell;
+                                if (isset($monthAttendance[$dayDate])) {
+                                    echo "<span class='attendance-info'>{$monthAttendance[$dayDate]['present']}/{$monthAttendance[$dayDate]['total']}</span>";
+                                }
+                                echo "</a></td>";
                             }
                         }
                         echo "</tr>";
@@ -142,7 +192,8 @@ if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
             <?php
             // When a date is selected, show list of members with their attendance status and a form to update
             $displayDate = $selectedDate;
-            if ($displayDate):
+            // Only show the form if user is authorized
+            if ($displayDate && $isAuthorized):
                 // Fetch members
                 $mstmt2 = $conn->prepare("SELECT user_id, full_name, email FROM users WHERE role = 'member' ORDER BY full_name ASC");
                 $mstmt2->execute();
@@ -211,21 +262,85 @@ if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
                 .calendar td.empty{background:transparent;box-shadow:none}
                 .calendar td a{display:block;color:#0f172a;text-decoration:none}
                 .calendar td.selected{background:linear-gradient(180deg,var(--accent),#ffffff);box-shadow:0 6px 18px rgba(11,30,60,0.06)}
-                .calendar td.present{background:linear-gradient(180deg,#defbe6,#ffffff);border:1px solid #c8f2d2;position:relative}
-                .calendar td.present a{color:#0a5d2f;font-weight:600}
-                .calendar td.present::after{content:attr(data-count);position:absolute;top:6px;right:8px;background:#16a34a;color:#fff;font-size:11px;padding:2px 6px;border-radius:999px}
 
-                /* Data table */
-                /* Table: black background, white text */
-                .data-table{width:100%;border-collapse:collapse;margin-top:12px;background:#000;color:#fff}
-                .data-table thead th{background:transparent;text-align:left;padding:10px 12px;color:#fff;font-weight:600;border-bottom:1px solid rgba(255,255,255,0.06)}
-                .data-table tbody tr{background:#000;border-radius:8px;margin-bottom:8px;box-shadow:none}
-                .data-table tbody tr td{padding:10px 12px;border-top:1px solid rgba(255,255,255,0.04);vertical-align:middle;color:#fff}
-                .data-table tbody tr:first-child td{border-top:none}
-                .data-table tbody tr td:first-child{font-weight:600;color:#fff}
+                /* Data table - desktop (true table layout) */
+                .data-table{width:100%;border-collapse:collapse;margin-top:12px;background:transparent;border-radius:8px;overflow:hidden}
+                .data-table thead th{background:transparent;text-align:left;padding:12px 14px;color:var(--muted);font-weight:600;border-bottom:1px solid rgba(15,23,42,0.04)}
+                .data-table tbody tr{background:var(--card);box-shadow:0 4px 14px rgba(2,6,23,0.04)}
+                .data-table td{padding:12px 14px;border-top:1px solid rgba(15,23,42,0.03);vertical-align:middle}
+                .data-table tbody tr td:first-child{font-weight:700;color:var(--primary);}
+                .data-table tbody tr td:nth-child(2){color:var(--muted);}
+                .data-table tbody tr td:nth-child(3) input[type=checkbox]{transform:scale(1.1);accent-color:var(--primary)}
+
+                /* Make the checkbox column narrow and center-aligned */
+                .data-table td:nth-child(3), .data-table th:nth-child(3) { width: 90px; text-align: center; }
+
+                /* Mobile: stack rows as card-like blocks */
+                @media (max-width:900px){
+                    .data-table{border-radius:0;overflow:visible}
+                    .data-table thead{display:none}
+                    .data-table tbody tr{display:block;margin-bottom:12px;border-radius:10px;padding:12px;background:var(--card);box-shadow:0 6px 18px rgba(2,6,23,0.06)}
+                    .data-table tbody tr td{display:flex;justify-content:space-between;padding:8px 0;border-top:none}
+                    .data-table tbody tr td:first-child{display:block;font-weight:700;margin-bottom:6px;color:var(--primary)}
+                    .data-table tbody tr td:nth-child(2){color:var(--muted);font-size:0.95em}
+                    .data-table tbody tr td:nth-child(3){text-align:right}
+                }
 
                 button, .action-button{background:var(--primary);color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer}
                 button:hover, .action-button:hover{opacity:0.95}
+
+                /* Calendar Attendance Indicators */
+                .calendar td.full-attendance {
+                    background: #e6ffe6;
+                    border: 1px solid #b3ffb3;
+                }
+                .calendar td.partial-attendance {
+                    background: #fff7e6;
+                    border: 1px solid #ffe0b3;
+                }
+                .calendar td.no-attendance {
+                    background: #ffe6e6;
+                    border: 1px solid #ffb3b3;
+                }
+                .attendance-info {
+                    display: block;
+                    font-size: 0.8em;
+                    color: var(--muted);
+                    margin-top: 2px;
+                }
+                .calendar-legend {
+                    display: flex;
+                    gap: 16px;
+                    margin-bottom: 8px;
+                }
+                .legend-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    font-size: 0.9em;
+                    color: var(--muted);
+                }
+                .dot {
+                    width: 12px;
+                    height: 12px;
+                    border-radius: 50%;
+                }
+                .dot.full-attendance {
+                    background: #e6ffe6;
+                    border: 1px solid #b3ffb3;
+                }
+                .dot.partial-attendance {
+                    background: #fff7e6;
+                    border: 1px solid #ffe0b3;
+                }
+                .dot.no-attendance {
+                    background: #ffe6e6;
+                    border: 1px solid #ffb3b3;
+                }
+                .dot.selected {
+                    background: var(--accent);
+                    border: 1px solid var(--primary);
+                }
 
                 /* Responsive */
                 @media (max-width:900px){
@@ -233,8 +348,7 @@ if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
                     .calendar{max-width:100%}
                     .data-table thead{display:none}
                     .data-table tbody tr{display:block;padding:12px}
-                    .data-table tbody tr td{display:flex;justify-content:space-between;padding:8px 0;border-top:none;color:#fff}
-                    .data-table tbody tr td::before{content:attr(data-label);font-weight:600;color:#fff;margin-right:8px}
+                    .data-table tbody tr td{display:flex;justify-content:space-between;padding:8px 0;border-top:none}
                 }
             </style>
 

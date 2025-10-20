@@ -1,6 +1,6 @@
 <?php if (session_status() == PHP_SESSION_NONE) { session_start(); } ?>
 <header>
-    <h1>POWER FITNESS</h1>
+    <h1>Kushi Fitness Gym</h1>
     <nav>
         <ul>
             <li><a href="index.html">Home</a></li>

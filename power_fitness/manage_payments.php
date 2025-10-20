@@ -47,20 +47,111 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_payment'])) {
     <title>Manage Payments - POWER FITNESS</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        .admin-page { padding: 30px; }
-        h2, h3 { color: #333; margin-bottom: 10px; }
-        .form-section { background: #f9f9f9; padding: 15px; border-radius: 10px; margin-bottom: 25px; }
-        .form-group { margin-bottom: 10px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; }
-        input, select, button { width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ccc; }
-        button { background: #007bff; color: white; border: none; cursor: pointer; }
-        button:hover { background: #0056b3; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
-        th { background: #007bff; color: white; }
-        tr:nth-child(even) { background: #f2f2f2; }
-        .status-paid { color: green; font-weight: bold; }
-        .status-pending { color: red; font-weight: bold; }
+        .admin-page {
+            max-width: 900px;
+            margin: 32px auto;
+            padding: 32px 18px;
+            background: linear-gradient(180deg, #fff, #f4f6fb);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(11,30,60,0.08);
+            font-family: Inter, system-ui, Arial, sans-serif;
+        }
+        h2, h3 {
+            color: #0b6cff;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        .form-section {
+            background: #f8fafc;
+            padding: 22px 18px;
+            border-radius: 12px;
+            margin-bottom: 32px;
+            box-shadow: 0 2px 10px rgba(11,30,60,0.06);
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #0f172a;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 7px;
+            border: 1px solid #cbd5e1;
+            font-size: 1em;
+            background: #fff;
+            margin-bottom: 2px;
+        }
+        button {
+            background: #0b6cff;
+            color: #fff;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(11,30,60,0.06);
+            transition: background 0.15s;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        .view-section {
+            background: #f8fafc;
+            padding: 18px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(11,30,60,0.06);
+        }
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 18px;
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(11,30,60,0.04);
+        }
+        th {
+            background: #0b6cff;
+            color: #fff;
+            font-weight: 600;
+            padding: 12px 8px;
+            border-bottom: 2px solid #2563eb;
+        }
+        td {
+            padding: 12px 8px;
+            text-align: center;
+            color: #222;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        tr:nth-child(even) td {
+            background: #f4f6fb;
+        }
+        .status-paid {
+            color: #16a34a;
+            font-weight: bold;
+        }
+        .status-pending {
+            color: #e11d48;
+            font-weight: bold;
+        }
+        @media (max-width: 700px) {
+            .admin-page, .form-section, .view-section {
+                padding: 10px;
+            }
+            table, th, td {
+                font-size: 0.95em;
+            }
+        }
     </style>
 </head>
 <body>
