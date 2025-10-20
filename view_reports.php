@@ -263,12 +263,28 @@ if (!$isAuthorized && ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequ
                 .calendar td a{display:block;color:#0f172a;text-decoration:none}
                 .calendar td.selected{background:linear-gradient(180deg,var(--accent),#ffffff);box-shadow:0 6px 18px rgba(11,30,60,0.06)}
 
-                /* Data table */
-                .data-table{width:100%;border-collapse:collapse;margin-top:12px;background:transparent}
-                .data-table thead th{background:transparent;text-align:left;padding:10px 12px;color:var(--muted);font-weight:600}
-                .data-table tbody tr{background:var(--card);border-radius:8px;margin-bottom:8px;display:table;width:100%;table-layout:fixed;box-shadow:0 4px 14px rgba(2,6,23,0.04)}
-                .data-table td{padding:10px 12px;border-top:1px solid rgba(15,23,42,0.03);vertical-align:middle}
-                .data-table tbody tr td:first-child{font-weight:600;color:#0f172a}
+                /* Data table - desktop (true table layout) */
+                .data-table{width:100%;border-collapse:collapse;margin-top:12px;background:transparent;border-radius:8px;overflow:hidden}
+                .data-table thead th{background:transparent;text-align:left;padding:12px 14px;color:var(--muted);font-weight:600;border-bottom:1px solid rgba(15,23,42,0.04)}
+                .data-table tbody tr{background:var(--card);box-shadow:0 4px 14px rgba(2,6,23,0.04)}
+                .data-table td{padding:12px 14px;border-top:1px solid rgba(15,23,42,0.03);vertical-align:middle}
+                .data-table tbody tr td:first-child{font-weight:700;color:var(--primary);}
+                .data-table tbody tr td:nth-child(2){color:var(--muted);}
+                .data-table tbody tr td:nth-child(3) input[type=checkbox]{transform:scale(1.1);accent-color:var(--primary)}
+
+                /* Make the checkbox column narrow and center-aligned */
+                .data-table td:nth-child(3), .data-table th:nth-child(3) { width: 90px; text-align: center; }
+
+                /* Mobile: stack rows as card-like blocks */
+                @media (max-width:900px){
+                    .data-table{border-radius:0;overflow:visible}
+                    .data-table thead{display:none}
+                    .data-table tbody tr{display:block;margin-bottom:12px;border-radius:10px;padding:12px;background:var(--card);box-shadow:0 6px 18px rgba(2,6,23,0.06)}
+                    .data-table tbody tr td{display:flex;justify-content:space-between;padding:8px 0;border-top:none}
+                    .data-table tbody tr td:first-child{display:block;font-weight:700;margin-bottom:6px;color:var(--primary)}
+                    .data-table tbody tr td:nth-child(2){color:var(--muted);font-size:0.95em}
+                    .data-table tbody tr td:nth-child(3){text-align:right}
+                }
 
                 button, .action-button{background:var(--primary);color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer}
                 button:hover, .action-button:hover{opacity:0.95}
